@@ -24,18 +24,19 @@ def proxy(url):
     response_json = r.json()
     project_id = get_project_id_if_mentions_call(url)
     if project_id:
-        add_category_names(project_id, response_json)
+        add_subcategory_names(project_id, response_json)
     return json.dumps(response_json)
 
 
-def add_category_names(project_id, response_json):
-    categories = get_categories(project_id)
-    for mention in response_json['results']:
-        new_cats = []
-        for cat in mention['categories']:
-            new_cats.append(categories[cat])
-        mention['categories'] = new_cats
+def add_subcategory_names(project_id, response_json):
+    sub_categories = get_subcategories(project_id)
 
+    for mention in response_json['results']:
+        new_subcategories = []
+        for sub_category_id in mention['categories']:
+            new_subcategories.append(sub_categories[sub_category_id])
+
+        mention['categories'] = new_subcategories
 
 def get_project_id_if_mentions_call(url):
     url_match = MENTIONS_CALL_REGEX.search(url)
@@ -44,17 +45,21 @@ def get_project_id_if_mentions_call(url):
     return None
 
 
-def get_categories(project_id):
+def get_subcategories(project_id):
     c = requests.get('http://newapi.brandwatch.com/projects/' +
                      project_id[0] +
                      '/categories' + '?' + 'access_token=' +
                      request.args.get('access_token'),
                      allow_redirects=False)
-    categories_from_json = c.json()['results'][0]['children']
-    categories = {}
+    categories_from_json = c.json()['results']
+
+    subcategories = {}
+
     for category in categories_from_json:
-        categories[category['id']] = category['name']
-    return categories
+        for subcategory in category['children']:
+            subcategories[subcategory['id']] = subcategory['name']
+
+    return subcategories
 
 
 def get_source_rsp(url):
